@@ -15,20 +15,33 @@ namespace converter_summary
             string counts = "60";
             if (args.Count() > 0)
             {
-                test(args[0]);
+                IniTest(args[0]);
             }
-            
+            InputFileTest("D:" + Path.DirectorySeparatorChar + "TEST_FILE" + Path.DirectorySeparatorChar + "SUMMARY" + Path.DirectorySeparatorChar 
+                + "SOURCE_FILE" + Path.DirectorySeparatorChar + "*.sum");
             Console.WriteLine("test");
             Console.ReadKey();
         }
 
-        static void test(string path)
+        static void IniTest(string path)
         {
-            Console.WriteLine("trying path: " + path);
+            Console.WriteLine("trying ini path: " + path);
             if (File.Exists(path))
-                Console.WriteLine("path  found");
+                Console.WriteLine("ini path  found");
             else
-                Console.WriteLine("path not found");
+                Console.WriteLine("ini path not found:"+ path);
+        }
+
+        static void InputFileTest(string path)
+        {
+            Console.WriteLine("trying input file path: " + path);
+            string[] files = Directory.GetFiles(
+               Path.GetDirectoryName(path), Path.GetFileName(path)
+            );
+            if (File.Exists(path))
+                Console.WriteLine("input path  found");
+            else
+                Console.WriteLine("input path not found:" + path);
         }
     }
 }
