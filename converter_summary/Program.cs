@@ -28,7 +28,9 @@ namespace converter_summary
             {
                 foreach(string sourceFileString in sourceFiles)
                 {
-                    sourceTest(sourceFileString);
+                    List<Hashtable> sourceFileHashList = sourceTest(sourceFileString);
+                    Console.WriteLine("test");
+                    Console.ReadKey();
                 }
             }
             Console.WriteLine("test");
@@ -71,11 +73,86 @@ namespace converter_summary
             return files;
         }
 
-        static Hashtable sourceTest(string path)
+        static List<Hashtable> sourceTest(string path)
         {
             string[] sourceStrings = File.ReadAllLines(path);
-            Hashtable sourceHash = new Hashtable();
-            return sourceHash;
+            Hashtable[] sourceHash = { new Hashtable(), new Hashtable() };
+            Hashtable bofHash = new Hashtable();
+            List<Hashtable> hashList = new List<Hashtable>();
+            var bofRegex = new Regex(@"([A-Za-z/_]+\s?[A-Za-z/_]*)\s+:([\S\s]+)");
+            var softBinRegex = new Regex(@"(\S+)\s+\S+\s+(\S+)");
+            var regex = bofRegex;
+            Hashtable currentHT = bofHash;
+            int siteCount = 0;
+            Boolean finishRead = false;
+            foreach (string readLine in sourceStrings)
+            {
+                if(readLine.StartsWith("Software Bin Summary"))
+                {
+                    List<string> list = Program.matches(readLine, @"\d+", 0);
+                    if (list.Count > 0)
+                    {
+                        siteCount = Convert.ToInt32(list[0]);
+                        //regex = softBinRegex;
+                        //currentHT = softBinHash;
+                    }
+                    else
+                    {
+                        //error handle
+                    }
+                    hashList.Add(currentHT);
+                }
+
+                if(readLine.StartsWith("Hardware Bin Summary"))
+                {
+                    finishRead = true;
+                }
+
+                if (!finishRead)
+                {
+                    if (siteCount == 0)
+                    {
+                        var matches = regex.Matches(readLine);
+                        if (matches.Count > 0 && matches[0].Groups.Count > 1)
+                        {
+                            currentHT.Add(matches[0].Groups[1].Value, matches[0].Groups[2].Value);
+                        }
+                    }
+                    else
+                    {
+                        List<string> list = Program.matches(readLine, @"\S+", 0);
+                        Hashtable softBinHash = new Hashtable();
+                        if (list.Count > 0 && (list[0].StartsWith("FAIL")|| list[0].StartsWith("PASS")|| list[0].StartsWith("OS")))
+                        {
+                            softBinHash["SW_BIN"] = list[1];
+                            softBinHash["HW_BIN"] = list[2];
+                            softBinHash["NUMBER"] = list[3];
+                            softBinHash["YIELD"] = list[4];
+                            softBinHash["DESCRIPTION"] = list[4+siteCount+1];
+                            hashList.Add(softBinHash);
+                        }
+
+                    }
+                }
+                
+                
+            }
+            //sourceHash[0] = bofHash;
+            //sourceHash[1] = softBinHash;
+            return hashList;
+        }
+
+        // 傳回text 中符合正規表示式pattern 的所有段落。
+        static List<String> matches(String text, String pattern, int groupId)
+        {
+            List<String> rzList = new List<String>();
+            Match match = Regex.Match(text, pattern);
+            for (int i = 0; match.Success; i++)
+            {
+                rzList.Add(match.Groups[groupId].Value);
+                match = match.NextMatch();
+            }
+            return rzList;
         }
     }
 }
