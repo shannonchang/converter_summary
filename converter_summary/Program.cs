@@ -138,6 +138,7 @@ namespace converter_summary
                         Hashtable softBinHash = new Hashtable();
                         if (list.Count > 0 && (list[0].StartsWith("FAIL")|| list[0].StartsWith("PASS")|| list[0].StartsWith("OS")))
                         {
+                            softBinHash["TYPE"] = list[0];
                             softBinHash["SW_BIN"] = list[1];
                             softBinHash["HW_BIN"] = list[2];
                             softBinHash["NUMBER"] = list[3];
@@ -189,33 +190,121 @@ namespace converter_summary
             Hashtable bofHash = sourceFileHashList[0];
             string format = "ddd MMM dd HH:mm:ss yyyy";
             string format1 = "yyyy/MM/dd HH:mm:ss";
-            string timeString = "";
-            string temp1 = Convert.ToString(bofHash["Start Date/Time"]);
-            DateTime temp = DateTime.Now;
-            if(DateTime.TryParseExact(temp1, format, CultureInfo.CreateSpecificCulture("en-US"),
-                System.Globalization.DateTimeStyles.None, out temp))
-            {
-                timeString = temp.ToString("yyyyMMddHHmmss");
+            string titleTimeString = "";
+            string startTimeString = "";
+            string stopTimeString = "";
+            DateTime outputTime = DateTime.Now;
+            int siteCount = 0;
+            //time
+            if (bofHash["Start Date/Time"] != null) {
+                titleTimeString = Convert.ToString(bofHash["Start Date/Time"]);
+                startTimeString = Convert.ToString(bofHash["Start Date/Time"]);
+                stopTimeString = Convert.ToString(bofHash["Stop Date/Time"]);
             }
             else
             {
-                temp = DateTime.ParseExact(temp1, format1, CultureInfo.CreateSpecificCulture("en-US"));
-                timeString = temp.ToString("yyyyMMddHHmmss");
+                titleTimeString = Convert.ToString(bofHash["Stop Date/Time"]);
+                stopTimeString = Convert.ToString(bofHash["Stop Date/Time"]);
+            }
+
+            //siteCount
+            if (bofHash["SITE NUM"] != null)
+            {
+                siteCount = Convert.ToInt32(bofHash["SITE NUM"]);
+            }
+
+            if(DateTime.TryParseExact(titleTimeString, format, CultureInfo.CreateSpecificCulture("en-US"),
+                System.Globalization.DateTimeStyles.None, out outputTime))
+            {
+                titleTimeString = outputTime.ToString("yyyyMMddHHmmss");
+                if (startTimeString != "")
+                {
+                    startTimeString = DateTime.ParseExact(startTimeString, format, CultureInfo.CreateSpecificCulture("en-US")).ToString("yyyy/MM/dd HH:mm:ss");
+                }
+                if (stopTimeString != "")
+                {
+                    stopTimeString = DateTime.ParseExact(stopTimeString, format, CultureInfo.CreateSpecificCulture("en-US")).ToString("yyyy/MM/dd HH:mm:ss");
+                }
+            }
+            else
+            {
+                outputTime = DateTime.ParseExact(titleTimeString, format1, CultureInfo.CreateSpecificCulture("en-US"));
+                titleTimeString = outputTime.ToString("yyyyMMddHHmmss");
+                if (startTimeString != "")
+                {
+                    startTimeString = DateTime.ParseExact(startTimeString, format1, CultureInfo.CreateSpecificCulture("en-US")).ToString("yyyy/MM/dd HH:mm:ss");
+                }
+                if (stopTimeString != "")
+                {
+                    stopTimeString = DateTime.ParseExact(stopTimeString, format1, CultureInfo.CreateSpecificCulture("en-US")).ToString("yyyy/MM/dd HH:mm:ss");
+                }
             }
             //DateTime temp = DateTime.Parse(temp1);
             
-            outputPath = outputPath + bofHash["Spil_lot_no"] +"_"+timeString+"_"+ bofHash["Tester"] + "." + bofHash["Stage"];
+            outputPath = outputPath + bofHash["Spil_lot_no"] +"_"+titleTimeString+"_"+ bofHash["Tester"] + "." + bofHash["Stage"]+".FT";
             using (StreamWriter sw = new StreamWriter(outputPath))
             {
-                // Add some text to the file.
-                sw.Write("This is the ");
-                sw.WriteLine("header for the file.");
-                sw.WriteLine("-------------------");
-                // Arbitrary objects can also be written to the file.
-                sw.Write("The date is: ");
-                sw.WriteLine(DateTime.Now);
+                //BOF
+                sw.WriteLine("[BOF]");
+                sw.WriteLine("DEVICE ID           :  "+bofHash["Device_Name"]);
+                sw.WriteLine("LOT ID              :  " + bofHash["Spil_lot_no"]);
+                sw.WriteLine("CUSTOMER DEVICE ID  :  " + bofHash["Device_Name"]);
+                sw.WriteLine("CUSTOMER LOT ID     :  " + bofHash["Customer_No"]);
+                sw.WriteLine("STAGE               :  " + bofHash["Stage"]);
+                sw.WriteLine("STEP                :  " + bofHash["Process"]);
+                sw.WriteLine("START TIME          :  " + startTimeString);
+                sw.WriteLine("STOP TIME           :  " + stopTimeString);
+                sw.WriteLine("TEST SITE           :  HS03");
+                sw.WriteLine("TEST BIN            :  " + bofHash["Testbin/all"]);
+                sw.WriteLine("TEST PROGRAM        :  " + bofHash["TestProgram_Name"]);
+                sw.WriteLine("TESTER ID           :  " + bofHash["Tester_ID"]);
+                sw.WriteLine("HANDLER ID          :  " + bofHash["Prober/handler"]);
+                sw.WriteLine("LOAD BOARD ID       :  " + bofHash["ProbeCard/FixBoard"]);
+                sw.WriteLine("SITE NUM            :  " + bofHash["SITE NUM"]);
+                sw.WriteLine("ADAPTOR ID          :  " );
+                sw.WriteLine("TOP SOCKET ID       :  " + bofHash["Socket_No"]);
+                sw.WriteLine("SOCKET ID           :  " + bofHash["Socket_No"]);
+                sw.WriteLine("CHANGE KIT ID       :  ");
+                sw.WriteLine("TEST VERSION        :  ");
+                sw.WriteLine("TEMPERATURE         :  " + bofHash["Temperature"]);
+                sw.WriteLine("SOFTWARE VERSION    :  ");
+                sw.WriteLine("SOAK TIME           :  ");
+                sw.WriteLine("TECH ID             :  " + bofHash["OP_id"]);
+                sw.WriteLine("TESTED DIE          :  " + bofHash["TESTED DIE"]);
+                sw.WriteLine("PASS DIE            :  " + bofHash["PASS DIE"]);
+                sw.WriteLine("YIELD               :  " + bofHash["YIELD"]);
+                sw.WriteLine("");
+                //BOF end
+                //Soft bin 
+                sw.WriteLine("[SOFT BIN]");
+                string siteString = "";
+                for(int i = 0; i < siteCount; i++)
+                {
+                    siteString += String.Format("{0,8},", "SITE" + i + "");
+                }
+                sw.WriteLine(String.Format("{0,12},{1,8},{2,8},{3,8},{4,8},{5}{6},{7}",
+                    "SW_BIN", "HW_BIN", "NUMBER", "YIELD", "TYPE", siteString,"SW_DESCRIPTION", "HW_DESCRIPTION"));
+                for(int i = 1; i< sourceFileHashList.Count; i++)
+                {
+                    Hashtable currentHT = sourceFileHashList[i];
+                    siteString = "";
+                    string s = Convert.ToString(currentHT["DESCRIPTION"]);
+                    for (int j =0; j <siteCount; j++)
+                    {
+                        siteString += String.Format("{0,8},", Convert.ToString(currentHT["site" + j]));
+                    }
+                    sw.WriteLine(String.Format("{0,12},{1,8},{2,8},{3,8},{4,8},{5}{6}{7}{8},{9}{10}{11}"
+                        , currentHT["SW_BIN"], currentHT["HW_BIN"], currentHT["NUMBER"], currentHT["YIELD"], currentHT["TYPE"]
+                        , siteString ,"{[", s.Substring(0, Math.Min(s.Length, 100)),"]}","{[", s.Substring(0, Math.Min(s.Length, 100)), "]}"));
+                }
+                sw.WriteLine("");
+                //Soft bin end
+
+                sw.WriteLine("[EXTENSION]");
+                sw.WriteLine("[EOF]");
+
             }
-        }
+}
 
         // 傳回text 中符合正規表示式pattern 的所有段落。
         static List<String> matches(String text, String pattern, int groupId)
