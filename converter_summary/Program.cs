@@ -6,6 +6,7 @@ using System.IO;
 using System.Collections;
 using System.Text.RegularExpressions;
 using System.Globalization;
+using System.Threading;
 
 namespace converter_summary
 {
@@ -17,10 +18,46 @@ namespace converter_summary
             string[] sourceFiles = { };
             List<string> passFiles = new List<string>();
             List<string> errorFiles = new List<string>();
-            string seconds = "20";
-            string counts = "60";
+            string seconds = "0";
+            string counts = "0";
             Hashtable iniHash = new Hashtable();
-            
+            DateTime startProgramTime = DateTime.Now;
+            Console.Out.WriteLine(DateTime.Now.ToLongTimeString());
+
+            if (args.Count() > 0)
+            {
+                foreach (string s in args)
+                {
+                    string[] argsArray = s.Split('=');
+                    if (argsArray.Length > 1)
+                    {
+                        switch (argsArray[0])
+                        {
+                            case "/INI":
+                                iniFile = argsArray[1];
+                                break;
+                            case "/COUNT":
+                                counts = argsArray[1];
+                                while (!IsNumber(counts))
+                                {
+                                    Console.WriteLine("COUNT should be integer, insert again here:");
+                                    counts = Console.ReadLine();
+                                }
+                                break;
+                            case "/SECONDS":
+                                seconds = argsArray[1];
+                                while (!IsNumber(seconds))
+                                {
+                                    Console.WriteLine("SECONDS should be integer, insert again here:");
+                                    seconds = Console.ReadLine();
+                                }
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+            }
             //if (args.Count() > 0)
             {
                 //iniHash = IniTest(args[0]);
@@ -31,8 +68,18 @@ namespace converter_summary
                 sourceFiles = InputFileTest(Convert.ToString(iniHash["SOURCE_FILE"]));
                 if (sourceFiles.Count() > 0)
                 {
+                    int fileCounter = 0;
                     foreach (string sourceFileString in sourceFiles)
                     {
+                        fileCounter++;
+                        if (!counts.Equals("0")&&fileCounter > Convert.ToInt32(counts))//file count > args file count
+                        {
+                            break;//jump out file loop
+                        }
+                        if (!seconds.Equals("0") && DateTime.Now.Subtract(startProgramTime).TotalSeconds>Convert.ToInt32(seconds))//timer count > args seconds count
+                        {
+                            break;//jump out file loop
+                        }
                         try
                         {
                             List<Hashtable> sourceFileHashList = sourceTest(sourceFileString);
@@ -59,6 +106,11 @@ namespace converter_summary
                 
             Console.WriteLine("Program finish");
             Console.ReadKey();
+        }
+
+        static Boolean IsNumber(String value)
+        {
+            return value.All(Char.IsDigit);
         }
 
         static Boolean iniPathCheck(Hashtable iniHash)
@@ -390,7 +442,7 @@ namespace converter_summary
                 System.IO.File.Move(errorFile, ERROR_PATH + Path.GetFileName(errorFile));
             }
             //write log file
-            using (StreamWriter sw = new StreamWriter(LOG_FILE))
+            using (StreamWriter sw = new StreamWriter(LOG_FILE, append: true))
             {
                 foreach (string passFile in passFiles)
                 {
